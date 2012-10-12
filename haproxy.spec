@@ -5,7 +5,7 @@
 %define haproxy_datadir %{_datadir}/haproxy
 
 Name:           haproxy
-Version:        1.4.20
+Version:        1.4.22
 Release:        1%{?dist}
 Summary:        HA-Proxy is a TCP/HTTP reverse proxy for high availability environments
 
@@ -18,7 +18,6 @@ Source1:        %{name}.init
 Source2:        %{name}.cfg
 Source3:        %{name}.logrotate
 
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  pcre-devel 
 
 
@@ -46,7 +45,8 @@ availability environments. Indeed, it can:
 
 %build
 # No configure script is present, it is all done via make flags
-# FC 7 and up is linux 2.6 so using linux26 as target.
+# Kernels of Fedora 11 and up and EL 6 and up are newer than 2.6.28,
+# so using linux2628 as target.
 
 # Recommended optimization option for x86 builds
 regparm_opts=
@@ -54,23 +54,14 @@ regparm_opts=
 regparm_opts="USE_REGPARM=1"
 %endif
 
-make %{?_smp_mflags} CPU="generic" TARGET="linux26" USE_PCRE=1 ${regparm_opts} ADDINC="%{optflags}" USE_LINUX_TPROXY=1
+make %{?_smp_mflags} CPU="generic" TARGET="linux2628" USE_PCRE=1 ${regparm_opts} ADDINC="%{optflags}" USE_LINUX_TPROXY=1
 
-# build the halog contrib program.  It has 2 version halog64 and halog.  Make
-# sure it is installed as 'halog' no matter what.
-halog="halog"
-%ifarch x86_64
-halog="halog64"
-%endif
-
+# build the halog contrib program.
 pushd contrib/halog
-make ${halog}
-mv ${halog} halog.tmp
-mv halog.tmp halog
+make OPTIMIZE="%{optflags}"
 popd
 
 %install
-rm -rf %{buildroot}
 make install-bin DESTDIR=%{buildroot} PREFIX=%{_prefix}
 make install-man DESTDIR=%{buildroot} PREFIX=%{_prefix}
 
@@ -93,11 +84,7 @@ do
     mv $textfile $textfile.old
     iconv --from-code ISO8859-1 --to-code UTF-8 --output $textfile $textfile.old
     rm -f $textfile.old
-done 
-
-
-%clean
-rm -rf %{buildroot}
+done
 
 
 %pre
@@ -122,7 +109,6 @@ fi
  
 
 %files
-%defattr(-,root,root,-)
 %doc doc/*
 %doc examples/url-switching.cfg
 %doc examples/acl-content-sw.cfg
@@ -144,6 +130,13 @@ fi
 
 
 %changelog
+* Fri Oct 12 2012 Robin Lee <cheeselee@fedoraproject.org> - 1.4.22-1
+- Update to 1.4.22 (CVE-2012-2942, #824544, #824545)
+- Use linux2628 build target
+- No separate x86_64 build target for halog
+- halog build honors rpmbuild optflags
+- Specfile cleanup
+
 * Tue Apr 03 2012 Jeremy Hinegardner <jeremy at hinegardner dot org> - 1.4.20-1
 - Update to 1.4.20
 

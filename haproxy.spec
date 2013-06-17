@@ -5,7 +5,7 @@
 %define haproxy_datadir %{_datadir}/haproxy
 
 Name:           haproxy
-Version:        1.4.23
+Version:        1.4.24
 Release:        1%{?dist}
 Summary:        HA-Proxy is a TCP/HTTP reverse proxy for high availability environments
 
@@ -130,6 +130,9 @@ fi
 
 
 %changelog
+* Mon Jun 17 2013 Ryan O'Hara <rohara@redhat.com> - 1.4.24-1
+- Update to 1.4.24 (CVE-2013-2175, #975160)
+
 * Tue Apr 02 2013 Ryan O'Hara <rohara@redhat.com> - 1.4.23-1
 - Update to 1.4.23 (CVE-2013-1912, #947697)
 - Drop supplementary groups after setuid/setgid (#894626)

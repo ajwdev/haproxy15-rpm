@@ -1,12 +1,13 @@
+%define haproxy_name    haproxy
 %define haproxy_user    haproxy
 %define haproxy_group   %{haproxy_user}
 %define haproxy_home    %{_localstatedir}/lib/haproxy
 %define haproxy_confdir %{_sysconfdir}/haproxy
 %define haproxy_datadir %{_datadir}/haproxy
 
-Name:           haproxy
-Version:        1.4.24
-Release:        1%{?dist}
+Name:           haproxy15
+Version:        1.5.19
+Release:        4%{?dist}_intox
 Summary:        HA-Proxy is a TCP/HTTP reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
@@ -14,17 +15,22 @@ License:        GPLv2+
 
 URL:            http://haproxy.1wt.eu/
 Source0:        http://haproxy.1wt.eu/download/1.4/src/haproxy-%{version}.tar.gz
-Source1:        %{name}.init
-Source2:        %{name}.cfg
-Source3:        %{name}.logrotate
+Source1:        %{haproxy_name}.init
+Source2:        %{haproxy_name}.cfg
+Source3:        %{haproxy_name}.logrotate
+Source4:        http://www.openssl.org/source/openssl-1.0.1e.tar.gz
 
-BuildRequires:  pcre-devel 
+BuildRequires:  pcre-devel zlib-devel
 
 
 Requires(pre):      %{_sbindir}/useradd
 Requires(post):     /sbin/chkconfig
 Requires(preun):    /sbin/chkconfig, /sbin/service
 Requires(postun):   /sbin/service
+Requires:           pcre
+Requires:           zlib
+
+Conflicts:          haproxy
 
 %description
 HA-Proxy is a TCP/HTTP reverse proxy which is particularly suited for high
@@ -40,7 +46,9 @@ availability environments. Indeed, it can:
 
 
 %prep
-%setup -q
+%setup -q -n haproxy-1.5-dev19
+# Unpack Openssl into haproxy build root
+%setup -T -D -a 4 -n haproxy-1.5-dev19
 
 
 %build
@@ -54,7 +62,12 @@ regparm_opts=
 regparm_opts="USE_REGPARM=1"
 %endif
 
-make %{?_smp_mflags} CPU="generic" TARGET="linux2628" USE_PCRE=1 ${regparm_opts} ADDINC="%{optflags}" USE_LINUX_TPROXY=1
+pushd openssl-1.0.1e
+./config --openssldir=%{_sysconfdir}/pki/tls no-shared no-rc5 zlib
+make
+popd
+
+make %{?_smp_mflags} CPU="generic" TARGET="linux2628" USE_GETADDRINFO=1 USE_ZLIB=1 USE_PCRE=1 ${regparm_opts} ADDINC="-I./openssl-1.0.1e/include %{optflags}" ADDLIB="-L./openssl-1.0.1e -ldl" USE_LINUX_TPROXY=1
 
 # build the halog contrib program.
 pushd contrib/halog
@@ -65,9 +78,9 @@ popd
 make install-bin DESTDIR=%{buildroot} PREFIX=%{_prefix}
 make install-man DESTDIR=%{buildroot} PREFIX=%{_prefix}
 
-%{__install} -p -D -m 0755 %{SOURCE1} %{buildroot}%{_initrddir}/%{name}
-%{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{haproxy_confdir}/%{name}.cfg
-%{__install} -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
+%{__install} -p -D -m 0755 %{SOURCE1} %{buildroot}%{_initrddir}/%{haproxy_name}
+%{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{haproxy_confdir}/%{haproxy_name}.cfg
+%{__install} -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/logrotate.d/%{haproxy_name}
 %{__install} -d -m 0755 %{buildroot}%{haproxy_home}
 %{__install} -d -m 0755 %{buildroot}%{haproxy_datadir}
 %{__install} -d -m 0755 %{buildroot}%{_bindir}
@@ -92,19 +105,19 @@ done
 
 
 %post
-/sbin/chkconfig --add %{name}
+/sbin/chkconfig --add %{haproxy_name}
     
 
 %preun
 if [ $1 = 0 ]; then
-    /sbin/service %{name} stop >/dev/null 2>&1
-    /sbin/chkconfig --del %{name}
+    /sbin/service %{haproxy_name} stop >/dev/null 2>&1
+    /sbin/chkconfig --del %{haproxy_name}
 fi  
     
 
 %postun
 if [ $1 -ge 1 ]; then
-/sbin/service %{name} condrestart > /dev/null 2>&1 || :
+/sbin/service %{haproxy_name} condrestart > /dev/null 2>&1 || :
 fi  
  
 
@@ -120,16 +133,20 @@ fi
 %dir %{haproxy_datadir}
 %{haproxy_datadir}/*
 %dir %{haproxy_confdir}
-%config(noreplace) %{haproxy_confdir}/%{name}.cfg
-%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
-%{_initrddir}/%{name}
-%{_sbindir}/%{name}
+%config(noreplace) %{haproxy_confdir}/%{haproxy_name}.cfg
+%config(noreplace) %{_sysconfdir}/logrotate.d/%{haproxy_name}
+%{_initrddir}/%{haproxy_name}
+%{_sbindir}/haproxy-systemd-wrapper
+%{_sbindir}/%{haproxy_name}
 %{_bindir}/halog
-%{_mandir}/man1/%{name}.1.gz
+%{_mandir}/man1/%{haproxy_name}.1.gz
 %attr(-,%{haproxy_user},%{haproxy_group}) %dir %{haproxy_home}
 
 
 %changelog
+* Fri Jul 05 2013 Andrew Williams <awilliams@intox.com> - 1.5.19
+- Update for 1.5.19 development build
+
 * Mon Jun 17 2013 Ryan O'Hara <rohara@redhat.com> - 1.4.24-1
 - Update to 1.4.24 (CVE-2013-2175, #975160)
 

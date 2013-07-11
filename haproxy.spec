@@ -7,7 +7,7 @@
 
 Name:           haproxy15
 Version:        1.5.19
-Release:        4%{?dist}_intox
+Release:        5%{?dist}_intox
 Summary:        HA-Proxy is a TCP/HTTP reverse proxy for high availability environments
 
 Group:          System Environment/Daemons
@@ -67,7 +67,7 @@ pushd openssl-1.0.1e
 make
 popd
 
-make %{?_smp_mflags} CPU="generic" TARGET="linux2628" USE_GETADDRINFO=1 USE_ZLIB=1 USE_PCRE=1 ${regparm_opts} ADDINC="-I./openssl-1.0.1e/include %{optflags}" ADDLIB="-L./openssl-1.0.1e -ldl" USE_LINUX_TPROXY=1
+make %{?_smp_mflags} CPU="generic" TARGET="linux2628" USE_GETADDRINFO=1 USE_ZLIB=1 USE_PCRE=1 USE_OPENSSL=1 ${regparm_opts} ADDINC="-I./openssl-1.0.1e/include %{optflags}" ADDLIB="-L./openssl-1.0.1e -ldl" USE_LINUX_TPROXY=1
 
 # build the halog contrib program.
 pushd contrib/halog
